@@ -1,0 +1,75 @@
+services:
+  app:
+    container_name: metamcp
+    image: ghcr.io/metatool-ai/metamcp:latest
+    pull_policy: always
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    env_file:
+      - .env
+    ports:
+      - "12008:12008"
+    environment:
+      PROPAGATE_UID_GID: "true"          # Tell MetaMCP to inject your UID/GID into every spawned MCP container
+      HOST_UID: ${HOST_UID:-1000}
+      HOST_GID: ${HOST_GID:-1000}
+      
+      # Fix for pnpm store permission issues
+      PNPM_HOME: "${USER_HOME}/.local/share/pnpm"
+      XDG_DATA_HOME: "${USER_HOME}/.local/share"
+
+      # Environment variables for stdio MCP servers
+      HOME: "${USER_HOME}"
+
+      POSTGRES_HOST: postgres
+      DATABASE_URL: postgresql://metamcp_user:m3t4mcp@postgres:5432/metamcp_db
+      APP_URL: http://localhost:12008
+      NEXT_PUBLIC_APP_URL: http://localhost:12008
+      BETTER_AUTH_SECRET: your-super-secret-and-very-long-key-here
+      TRANSFORM_LOCALHOST_TO_DOCKER_INTERNAL: "true"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "always"
+
+    volumes:
+      # Add docker socket for MCP servers that need to spawn containers
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+      # Mount pnpm store with proper permissions
+      - ${USER_HOME}/.local/share/pnpm:${USER_HOME}/.local/share/pnpm:rw
+      # Mount home directory for proper file access
+      - ${USER_HOME}:${USER_HOME}:rw
+    networks:
+      - metamcp-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: metamcp-pg
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-metamcp_db}
+      POSTGRES_USER: ${POSTGRES_USER:-metamcp_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-m3t4mcp}
+    ports:
+      - "${POSTGRES_EXTERNAL_PORT:-9433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-metamcp_user} -d ${POSTGRES_DB:-metamcp_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - metamcp-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  metamcp-network:
+    driver: bridge
