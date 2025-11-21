@@ -8,8 +8,9 @@ services:
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     env_file:
       - .env
-    ports:
-      - "12008:12008"
+    # With host networking, ports are exposed directly
+    # ports:
+    #   - "12008:12008"
     environment:
       DOCKER_HOST: unix:///var/run/docker.sock
 
@@ -24,14 +25,14 @@ services:
       # Environment variables for stdio MCP servers
       HOME: "${USER_HOME}"
 
-      POSTGRES_HOST: postgres
-      DATABASE_URL: postgresql://metamcp_user:m3t4mcp@postgres:5432/metamcp_db
+      POSTGRES_HOST: localhost
+      DATABASE_URL: postgresql://metamcp_user:m3t4mcp@localhost:5432/metamcp_db
       APP_URL: http://localhost:12008
       NEXT_PUBLIC_APP_URL: http://localhost:12008
       BETTER_AUTH_SECRET: your-super-secret-and-very-long-key-here
       TRANSFORM_LOCALHOST_TO_DOCKER_INTERNAL: "true"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    # Use host networking instead of bridged network
+    network_mode: "host"
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,8 +47,9 @@ services:
       - ${USER_HOME}/.local/share/pnpm:${USER_HOME}/.local/share/pnpm:rw
       # Mount home directory for proper file access
       - ${USER_HOME}:${USER_HOME}:rw
-    networks:
-      - metamcp-network
+    # Remove networks section since we're using host networking
+    # networks:
+    #   - metamcp-network
 
   postgres:
     image: postgres:16-alpine
@@ -59,8 +61,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-metamcp_db}
       POSTGRES_USER: ${POSTGRES_USER:-metamcp_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-m3t4mcp}
-    ports:
-      - "${POSTGRES_EXTERNAL_PORT:-9433}:5432"
+    # With host networking, expose port directly
+    # ports:
+    #   - "${POSTGRES_EXTERNAL_PORT:-9433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -69,13 +72,14 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    networks:
-      - metamcp-network
+    # Use host networking
+    network_mode: "host"
 
 volumes:
   postgres_data:
     driver: local
 
-networks:
-  metamcp-network:
-    driver: bridge
+# Remove networks section since we're using host networking
+# networks:
+#   metamcp-network:
+#     driver: bridge
