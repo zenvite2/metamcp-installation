@@ -1,7 +1,9 @@
 services:
   app:
     container_name: metamcp
-    image: ghcr.io/metatool-ai/metamcp:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.metamcp
     pull_policy: always
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     env_file:
@@ -9,6 +11,8 @@ services:
     ports:
       - "12008:12008"
     environment:
+      DOCKER_HOST: unix:///var/run/docker.sock
+
       PROPAGATE_UID_GID: "true"          # Tell MetaMCP to inject your UID/GID into every spawned MCP container
       HOST_UID: ${HOST_UID:-1000}
       HOST_GID: ${HOST_GID:-1000}
@@ -32,6 +36,8 @@ services:
       postgres:
         condition: service_healthy
     restart: "always"
+    group_add:
+      - "999"
 
     volumes:
       # Add docker socket for MCP servers that need to spawn containers

@@ -1,0 +1,11 @@
+# Extend the official MetaMCP image
+FROM ghcr.io/metatool-ai/metamcp:latest
+
+# Install Docker CLI
+USER root
+RUN apt-get update && \
+    apt-get install -y docker-cli && \
+    rm -rf /var/lib/apt/lists/*
+
+# Switch back to the original user
+USER ${HOST_UID:-1000}
