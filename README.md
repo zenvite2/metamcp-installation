@@ -2,6 +2,19 @@
 
 This setup extends the official MetaMCP installation to include Docker CLI inside the container, allowing MCP servers like desktop-command-mcp to interact with the host's Docker daemon.
 
+## MCP Server Configuration
+
+To integrate MCP servers with your application, add the following configuration to your project:
+
+```json
+{
+  "mcpServers": {
+    "MetaMCP": {
+      "url": "http://localhost:12008/metamcp/ai-workspace-endpoint/sse"
+    }
+}
+```
+
 ## Changes Made
 
 1. Created a custom Dockerfile (Dockerfile.metamcp) that extends the official MetaMCP image and installs Docker CLI
