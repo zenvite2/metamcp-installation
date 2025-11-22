@@ -5,22 +5,14 @@ services:
       context: .
       dockerfile: Dockerfile.metamcp
     pull_policy: always
-    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     env_file:
       - .env
     # With host networking, ports are exposed directly
     # ports:
     #   - "12008:12008"
     environment:
-      DOCKER_HOST: unix:///var/run/docker.sock
-
-      PROPAGATE_UID_GID: "true"          # Tell MetaMCP to inject your UID/GID into every spawned MCP container
-      HOST_UID: ${HOST_UID:-1000}
-      HOST_GID: ${HOST_GID:-1000}
-      
       # Environment variables for stdio MCP servers
-      HOME: "/home/nextjs"
-
+      HOME: "/home/${USER_NAME}"
       POSTGRES_HOST: localhost
       DATABASE_URL: postgresql://metamcp_user:m3t4mcp@localhost:5432/metamcp_db
       APP_URL: http://localhost:12008
@@ -33,19 +25,19 @@ services:
       postgres:
         condition: service_healthy
     restart: "always"
-    group_add:
-      - "999"
 
     volumes:
       # Add docker socket for MCP servers that need to spawn containers
       - /var/run/docker.sock:/var/run/docker.sock:rw
-      # Mount pnpm store with proper permissions
-      - ${USER_HOME}/.local/share/pnpm:${USER_HOME}/.local/share/pnpm:rw
-      # Mount home directory for proper file access
+      # Mount home directory for proper file access with exact same path as host
       - ${USER_HOME}:${USER_HOME}:rw
     # Remove networks section since we're using host networking
     # networks:
     #   - metamcp-network
+    # Add user and group IDs to match host
+    user: "${HOST_UID}:${HOST_GID}"
+    group_add:
+      - "${DOCKER_GID:-999}"
 
   postgres:
     image: postgres:16-alpine
@@ -74,10 +66,8 @@ services:
 volumes:
   postgres_data:
     driver: local
-  metamcp_pnpm_cache:
-    driver: local
 
 # Remove networks section since we're using host networking
 # networks:
 #   metamcp-network:
-#     driver: bridge
+#   driver: bridge

@@ -7,10 +7,19 @@ RUN apt-get update && \
     apt-get install -y docker-cli && \
     rm -rf /var/lib/apt/lists/*
 
-# Create the pnpm directory and set proper permissions for the nextjs user
-USER root
-RUN mkdir -p /home/nextjs/.local/share/pnpm && \
-    chown -R 1000:1000 /home/nextjs
+# Create docker group with the same GID as the host
+# This will be overridden by docker-compose group_add
+RUN groupadd -f -g 999 docker
 
-# Switch back to the original user
-USER ${HOST_UID:-1000}
+# Create a user with the same UID/GID as the host user
+# Using numeric IDs as fallback, but will be overridden by docker-compose user directive
+RUN useradd -m -u 1000 -U -s /bin/bash user || true
+
+# Add the user to the docker group
+RUN usermod -aG docker user
+
+# Ensure the home directory path exists and has proper permissions
+RUN mkdir -p /home/user && \
+    chown -R 1000:1000 /home/user
+
+USER user
