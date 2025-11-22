@@ -7,5 +7,10 @@ RUN apt-get update && \
     apt-get install -y docker-cli && \
     rm -rf /var/lib/apt/lists/*
 
+# Create the pnpm directory and set proper permissions for the nextjs user
+USER root
+RUN mkdir -p /home/nextjs/.local/share/pnpm && \
+    chown -R 1000:1000 /home/nextjs
+
 # Switch back to the original user
 USER ${HOST_UID:-1000}

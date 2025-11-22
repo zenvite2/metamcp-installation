@@ -18,12 +18,8 @@ services:
       HOST_UID: ${HOST_UID:-1000}
       HOST_GID: ${HOST_GID:-1000}
       
-      # Fix for pnpm store permission issues
-      PNPM_HOME: "${USER_HOME}/.local/share/pnpm"
-      XDG_DATA_HOME: "${USER_HOME}/.local/share"
-
       # Environment variables for stdio MCP servers
-      HOME: "${USER_HOME}"
+      HOME: "/home/nextjs"
 
       POSTGRES_HOST: localhost
       DATABASE_URL: postgresql://metamcp_user:m3t4mcp@localhost:5432/metamcp_db
@@ -77,6 +73,8 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+  metamcp_pnpm_cache:
     driver: local
 
 # Remove networks section since we're using host networking
